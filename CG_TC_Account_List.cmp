@@ -1,0 +1,149 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" controller="AccountListCtrl">
+    <aura:attribute name="data" type="Object"/>
+    <aura:attribute name="columns" type="List"/>
+    <aura:attribute name="accountId" type="String"/>
+    <aura:attribute name="bulkDelete" type="Boolean" default="false" description="for bulk delete"/>
+    <aura:attribute name="selectedRowsDelete" type="List" description="total selected rows to delete"/>
+    <aura:attribute name="selectedRowsUpdate" type="List" description="total selected rows to update"/>
+    <aura:attribute name="pillerRows" type="List" description="total selected rows to update"/>
+    <aura:attribute name="updatedRecord" type="Object[]" />
+    <aura:attribute name="ErrorMessage" type="String"/>
+    <aura:attribute name="IsErrorMessage" type="boolean" default="false"/>
+    <aura:attribute name="isShowAccountDetails" type="boolean" default="false" description="hide and show the account details"/>
+    <aura:attribute name="isNewAccount" type="boolean" default="false" description="is new account button clicked"/>
+    <aura:attribute name="newAccount" type="String[]" default="['Name','AccountNumber','AccountSource','ParentId','AnnualRevenue','Type','Industry','Description','Phone','Fax']"/> 
+    <aura:attribute name="accountSourceList" type="String[]"  description="get picklist value for closestLocation field" />
+    <aura:attribute name="accountObj" type="Account" default="{'sobjectType':'Account'}"/>
+    <aura:attribute name="isUpdateAccountSourceClicked" type="boolean" default="false" />
+    <aura:attribute name="singleValUpdateAccounts" type="List" />
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <aura:attribute name="selectedValue" type="String"/>
+    <aura:attribute name="isDeleteOk" type="boolean" default="false" description="show modal while deleting records"/>
+    <aura:attribute name="sortedBy" type="String" />
+    <aura:attribute name="sortedDirection" type="Boolean" default="true" />
+    <aura:attribute name="deleteErrorMessage" type="String"/>
+    <aura:attribute name="IsDeleteErrorMessage" type="boolean" default="false"/>
+    <aura:attribute name="deletAccount" type="Account" description="possible delete account"/>
+    <aura:attribute name="possibleBulkAccount" type="List"  description="possible bulk delete"/>
+    
+    
+    <aura:if isTrue="{!v.IsErrorMessage}">
+        <div role="alertdialog" tabindex="-1" aura:id="ErrorMessage" aria-labelledby="prompt-heading-id" aria-describedby="prompt-message-wrapper" class="modal slds-modal slds-fade-in-open slds-modal--prompt slds-show">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header slds-theme--error slds-theme--alert-texture">
+                    <lightning:icon class="slds-button__icon slds-button__icon--large closeIcon" onclick="{!c.closeErrorModal}"  iconName="utility:close" size="x-small" alternativeText="Errortext" />
+                    <h2 id="header43" class="slds-text-heading--medium">Error</h2>
+                </div>
+                <div class="slds-modal__content slds-p-around--medium">
+                    <p style="text-align:center;">{!v.ErrorMessage}</p>
+                </div>
+                <div class="slds-modal__footer slds-theme--default">
+                    <button class="slds-button slds-button--neutral buttonShadowBorder popup-btn" onclick="{!c.closeErrorModal}">OK</button>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    
+    <lightning:card title="Account Records">
+        <aura:set attribute="actions">
+            <lightning:buttonGroup>
+                <lightning:button label="New Account" title="New Account" onclick="{! c.createNewAccount }" />
+                <lightning:button label="Update Account Source" title="Update Account Source" onclick="{! c.handleAccountUpdate}"/>
+                <lightning:button variant="destructive" label="Bulk Delete" class="deleteAction" title="Bulk Delete" onclick="{! c.handleBulkDeleteClick }"/>
+            </lightning:buttonGroup>
+        </aura:set>
+        <p class="slds-p-horizontal_small">
+            <lightning:datatable
+                                 aura:id="accountDataTable"
+                                 columns="{! v.columns }"
+                                 data="{! v.data }"
+                                 keyField="Id"
+                                 onsave ="{!c.onSave}"
+                                 onrowselection="{! c.handleRowselection }"
+                                 onrowaction="{! c.handleRowAction }"
+                                 onsort="{!c.updateColumnSorting}"
+                                 sortedBy="{!v.sortedBy}"
+                                 sortedDirection="{!v.sortedDirection}"
+                                 />
+        </p>
+    </lightning:card>
+    <aura:if isTrue="{!v.isShowAccountDetails}">
+        <lightning:card title="Account Details" variant="Narrow" iconName="standard:account">
+            <p class="slds-p-horizontal_xx-large">
+                <c:CG_TC_Account_Details accountId="{!v.accountId}"/></p>
+        </lightning:card>
+    </aura:if>
+    <!-- Create new account -->
+    <aura:if isTrue="{!v.isNewAccount}">
+        
+        <div class="demo-only" style="height: 640px;">
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" onclick="{!c.closePopup}" title="Close">
+                            <span class="slds-assistive-text" >Close</span>
+                        </button>
+                        <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">New Account</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                        <lightning:recordForm 
+                                              objectApiName="Account" 
+                                              fields="{!v.newAccount}"
+                                              columns="2"
+                                              mode="edit"
+                                              onsuccess="{!c.onSuccess}"
+                                              onerror="{!c.onError}"
+                                              oncancel="{!c.oncancel}"
+                                              
+                                              />
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </div>
+    </aura:if>
+    <aura:if isTrue="{!v.isUpdateAccountSourceClicked}">
+        <div class="demo-only" style="height: 640px;">
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" onclick="{!c.closePopup}" title="Close">
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                        <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Account Source Update</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                        <lightning:pillContainer items="{!v.pillerRows}" onitemremove="{!c.handleItemRemove}"/>
+                        <lightning:select name="select" aura:id="selectLoc" label="Account Source" value="{!v.selectedValue}" >
+                            <aura:iteration items="{!v.accountSourceList}" var="cl">
+                                <option text="{!cl}" value="{!cl}"></option>
+                            </aura:iteration>
+                        </lightning:select>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="slds-button slds-button_neutral" onclick="{!c.closePopup}">Cancel</button>
+                        <button class="slds-button slds-button_brand" onclick="{!c.updateAccountSourceVal}">Save</button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </div>
+    </aura:if>
+    <aura:if isTrue="{!v.IsDeleteErrorMessage}">
+        <div role="alertdialog" tabindex="-1" aura:id="ErrorMessage" aria-labelledby="prompt-heading-id" aria-describedby="prompt-message-wrapper" class="modal slds-modal slds-fade-in-open slds-modal--prompt slds-show">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header slds-box slds-theme--warning slds-theme--alert-texture">
+                    <lightning:icon class="slds-button__icon slds-button__icon--large closeIcon" onclick="{!c.deleteCancelCloseErrorModal}"  iconName="utility:close" size="x-small" alternativeText="Errortext" />
+                    <h2 id="header43" class="slds-text-heading--medium">Delete</h2>
+                </div>
+                <div class="slds-modal__content slds-p-around--medium">
+                    <p style="text-align:center;">{!v.deleteErrorMessage}</p>
+                </div>
+                <div class="slds-modal__footer slds-theme--default">
+                    <button class="slds-button slds-button--neutral buttonShadowBorder popup-btn" onclick="{!c.deleteCancelCloseErrorModal}">Cancel</button>
+                    <button class="slds-button slds-button--neutral buttonShadowBorder popup-btn" onclick="{!c.deleteCloseErrorModal}">OK</button>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+</aura:component>

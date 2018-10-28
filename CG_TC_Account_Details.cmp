@@ -1,0 +1,12 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <aura:attribute name="accountId" type="String" default="" description="pass account id to show view form"/>
+    <aura:attribute name="fields" type="String[]" default="['Name','AccountNumber','OwnerId','AccountSource','ParentId','AnnualRevenue','Type','CreatedById','LastModifiedById','Industry','Description','Phone','Fax']"/>
+    <lightning:recordForm 
+                          recordId="{!v.accountId}" 
+                          objectApiName="Account" 
+                          fields="{!v.fields}"
+                          columns="2"
+                          mode="readonly"
+                          onerror ="{!c.handleError}"/>
+    
+</aura:component>
